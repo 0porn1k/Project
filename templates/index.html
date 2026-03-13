@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Моя Аутентификация</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 flex items-center justify-center h-screen">
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-96">
+        <h2 id="title" class="text-2xl font-bold mb-6 text-center text-slate-800">Вход</h2>
+        
+        <form id="auth-form" class="space-y-4">
+            <input type="text" id="username" placeholder="Имя пользователя" required 
+                   class="w-full border border-slate-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="password" id="password" placeholder="Пароль" required 
+                   class="w-full border border-slate-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition">
+                Отправить
+            </button>
+        </form>
+
+        <div class="mt-6 text-center">
+            <button id="toggle-mode" class="text-sm text-blue-600 hover:underline">
+                Нет аккаунта? Зарегистрироваться
+            </button>
+        </div>
+        <div id="status" class="mt-4 text-center text-sm hidden"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('auth-form');
+        const toggleBtn = document.getElementById('toggle-mode');
+        const statusDiv = document.getElementById('status');
+        let isLogin = true;
+
+        // Переключение между Входом и Регистрацией
+        toggleBtn.onclick = () => {
+            isLogin = !isLogin;
+            document.getElementById('title').innerText = isLogin ? "Вход" : "Регистрация";
+            toggleBtn.innerText = isLogin ? "Нет аккаунта? Зарегистрироваться" : "Уже есть аккаунт? Войти";
+            statusDiv.classList.add('hidden');
+        };
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // Эндпоинт зависит от режима
+            const endpoint = isLogin ? '/login' : '/register';
+            
+            try {
+                const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus(isLogin ? "Успешный вход!" : "Вы успешно зарегистрированы!", "green");
+                    
+                    if (data.access_token) {
+                        // 1. Сохраняем токен
+                        localStorage.setItem('token', data.access_token);
+                        
+                        // 2. Ждем секунду (чтобы пользователь успел увидеть надпись "Успех") 
+                        // и перекидываем на страницу профиля
+                        setTimeout(() => {
+                            window.location.href = 'profile.html';
+                        }, 1000);
+                    }
+                }
+            } catch (error) {
+                showStatus("Сервер не отвечает. Проверь, запущен ли uvicorn!", "red");
+            }
+        };
+
+        function showStatus(text, color) {
+            statusDiv.innerText = text;
+            statusDiv.className = `mt-4 text-center text-sm font-bold text-${color}-600`;
+            statusDiv.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

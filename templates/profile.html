@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Личный кабинет</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white flex items-center justify-center h-screen">
+    <div class="bg-slate-800 p-8 rounded-xl shadow-2xl w-full max-w-md text-center">
+        <h1 class="text-3xl font-bold mb-4">Добро пожаловать!</h1>
+        <p class="text-slate-400 mb-6">Это твой защищенный профиль.</p>
+        
+        <div id="user-info" class="bg-slate-700 p-4 rounded-lg mb-6 hidden">
+            <p class="text-sm text-slate-300">Твой ID: <span id="user-id" class="text-blue-400"></span></p>
+            <p class="text-sm text-slate-300">Логин: <span id="user-name" class="text-blue-400"></span></p>
+        </div>
+
+        <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition">
+            Выйти из системы
+        </button>
+    </div>
+
+    <script>
+        // Функция проверки авторизации при загрузке страницы
+        async function checkAuth() {
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                // Если токена нет — на выход
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Пытаемся получить данные о себе с бэкенда (используем наш роут /users/me)
+            try {
+                const response = await fetch('http://127.0.0.1:8000/users/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    document.getElementById('user-info').classList.remove('hidden');
+                    document.getElementById('user-id').innerText = userData.id;
+                    document.getElementById('user-name').innerText = userData.username;
+                } else {
+                    // Если токен "протух" или неверный
+                    logout();
+                }
+            } catch (error) {
+                console.error("Ошибка связи с сервером");
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        // Запускаем проверку сразу
+        checkAuth();
+    </script>
+</body>
+</html>
