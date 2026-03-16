@@ -14,7 +14,7 @@ from fastapi import Depends
 from database import get_db 
 import os
 from dotenv import load_dotenv
-
+#Это 3ий коммит
 db_dep = Annotated[Session, Depends(get_db)]
 # "login" — это название нашего роута для входа
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
