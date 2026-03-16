@@ -7,13 +7,14 @@ from datetime import datetime, timedelta, timezone
 import jwt
 from typing import Annotated
 from fastapi.security import OAuth2PasswordBearer
-from typing import Annotated # Важно для работы Annotated
+from typing import Annotated 
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
 from fastapi import Depends
-from database import get_db # Импорт твоей функции из файла database.py
+from database import get_db 
+import os
+from dotenv import load_dotenv
 
-# Вот то самое определение, которого не хватает:
 db_dep = Annotated[Session, Depends(get_db)]
 # "login" — это название нашего роута для входа
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -38,10 +39,11 @@ app.add_middleware(
 # Он работает "из коробки" и не требует компиляторов.
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
+load_dotenv()
 # Настройки остаются прежними
-SECRET_KEY = "super-secret-key-123"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 
 def create_access_token(data: dict):
     to_encode = data.copy()
