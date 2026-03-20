@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Панель администратора</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-red-500">Админ-панель</h1>
+            <div class="flex gap-4">
+                <button onclick="window.location.href='profile.html'" class="text-slate-400 hover:text-white underline">В профиль</button>
+                <button onclick="logout()" class="bg-red-600 px-4 py-2 rounded hover:bg-red-700">Выйти</button>
+            </div>
+        </div>
+
+        <div id="admin-content" class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden">
+            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
+                <h3 class="text-slate-400 uppercase text-xs font-bold mb-2">Статус сервера</h3>
+                <p id="server-status" class="text-2xl font-mono text-green-400 text-center py-4">ONLINE</p>
+            </div>
+            
+            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
+                <h3 class="text-slate-400 uppercase text-xs font-bold mb-2">Секретные данные</h3>
+                <p id="admin-data" class="text-lg italic text-slate-300">Загрузка...</p>
+            </div>
+        </div>
+
+        <div id="error-msg" class="bg-red-900/50 border border-red-500 p-8 rounded-xl text-center hidden">
+            <h2 class="text-2xl font-bold mb-2">Доступ запрещен! ⛔</h2>
+            <p>У вас нет прав администратора для просмотра этой страницы.</p>
+        </div>
+    </div>
+
+    <script>
+        async function loadAdminData() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/admin/stats', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('admin-content').classList.remove('hidden');
+                    document.getElementById('admin-data').innerText = data.stats;
+                } else if (response.status === 403) {
+                    document.getElementById('error-msg').classList.remove('hidden');
+                    // Через 3 секунды возвращаем обычного юзера в профиль
+                    setTimeout(() => window.location.href = 'profile.html', 3000);
+                } else {
+                    window.location.href = 'index.html';
+                }
+            } catch (error) {
+                console.error("Ошибка сети");
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        loadAdminData();
+    </script>
+</body>
+</html>

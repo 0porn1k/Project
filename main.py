@@ -14,6 +14,7 @@ from fastapi import Depends
 from database import get_db 
 import os
 from dotenv import load_dotenv
+import logging
 #Это 3ий коммит
 #Это 4ый коммит
 db_dep = Annotated[Session, Depends(get_db)]
@@ -41,6 +42,10 @@ app.add_middleware(
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 load_dotenv()
+
+#Настройка дебагера
+logging.basicConfig(level=logging.DEBUG, filename="backend_log.txt", filemode="w", format="%(asctime)s %(levelname)s %(message)s")
+
 # Настройки остаются прежними
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
@@ -78,21 +83,24 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
 
 @app.post("/login")
 def login_user(user_data: UserCreate, db: Session = Depends(get_db)):
+    
     # 1. Ищем пользователя по имени
     user = db.query(models.User).filter(models.User.username == user_data.username).first()
-    
-    # 2. Если пользователя нет
+
     if not user:
+        logging.info("Попытка входа "+user_data.username+ " пользователь не найден")
         raise HTTPException(status_code=400, detail="Неверное имя пользователя или пароль")
 
     # 3. Проверяем пароль (сравниваем хеши через нашу pbkdf2_sha256)
     if not pwd_context.verify(user_data.password, user.hashed_password):
+        logging.info("Попытка входа "+user_data.username+ " неверный пароль")
         raise HTTPException(status_code=400, detail="Неверное имя пользователя или пароль")
 
     # 4. Если всё ок — создаем токен
-    access_token = create_access_token(data={"sub": user.username})
+    access_token = create_access_token(data={"sub": user.username, "role": user.role})
 
     # 5. Возвращаем токен фронтенду
+    logging.info("Пользователь "+user_data.username+" успешно вошел в систему")
     return {"access_token": access_token, "token_type": "bearer"}
 
 def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: db_dep):
@@ -110,6 +118,7 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: db_dep):
             raise credentials_exception
             
     except jwt.PyJWTError:
+        logging.warning("Ошибка потверждения токена для:"+username)
         # Если токен подделан, просрочен или поврежден
         raise credentials_exception
 
@@ -117,6 +126,7 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: db_dep):
     user = db.query(models.User).filter(models.User.username == username).first()
     
     if user is None:
+        logging.info("Пользоваель "+username+" не найден при потверждении токена")
         raise credentials_exception
         
     return user # Возвращаем полноценный объект пользователя из БД
@@ -135,4 +145,13 @@ def return_all_user():
         count = session.execute(stmt).scalar()
         
     return {"total_users": count}
-    
+@app.get("/admin/stats")
+def get_admin_stats(current_user: Annotated[models.User, Depends(get_current_user)]):
+    if current_user.role != "admin":
+        logging.info("Пользовотель "+current_user.username+" не обладет провами admin")
+        raise HTTPException(
+            status_code = 403,
+            detail = "У вас недостаточно прав",
+        )
+    return {"stats": "Тут очень секретные данные для админа", "total_users": 100}
+
