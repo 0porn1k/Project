@@ -2,8 +2,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# 1. Указываем путь к файлу базы данных. 
-# SQLite создаст файл 'sql_app.db' в той же папке, где лежит этот скрипт.
 SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
 
 # 2. Создаем "движок" (Engine)
